@@ -3,7 +3,9 @@ package consul
 import (
 	"time"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/vault/builtin/logical/database/dbplugin"
+	"github.com/hashicorp/vault/plugins"
 	"github.com/hashicorp/vault/plugins/helper/database/connutil"
 	"github.com/hashicorp/vault/plugins/helper/database/credsutil"
 )
@@ -29,9 +31,30 @@ func New() (interface{}, error) {
 	return dbType, nil
 }
 
+// Run instantiates a Consul object, and runs the RPC server for the plugin
+func Run(apiTLSConfig *api.TLSConfig) error {
+	dbType, err := New()
+	if err != nil {
+		return err
+	}
+
+	plugins.Serve(dbType.(*Consul), apiTLSConfig)
+
+	return nil
+}
+
 // Type returns the TypeName for this backend
 func (c *Consul) Type() (string, error) {
 	return consulTypeName, nil
+}
+
+func (c *Consul) getConnection() (*api.Client, error) {
+	conn, err := c.Connection()
+	if err != nil {
+		return nil, err
+	}
+
+	return conn.(*api.Client), nil
 }
 
 // CreateUser generates a Consul token
@@ -39,6 +62,9 @@ func (c *Consul) CreateUser(statements dbplugin.Statements, usernameConfig dbplu
 	// Lock Consul
 	c.Lock()
 	defer c.Unlock()
+
+	client := c.getConnection()
+	client.ACL().
 	return "", "", nil
 }
 
