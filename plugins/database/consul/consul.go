@@ -16,10 +16,17 @@ type Consul struct {
 	credsutil.CredentialsProducer
 }
 
-// New create a new Consul instance
+// New create a new Consul Connection instance
 func New() (interface{}, error) {
-	// connProducer := &consulConnectionProducer{}
-	return nil, nil
+	connProducer := &consulConnectionProducer{}
+	connProducer.Type = consulTypeName
+
+	dbType := &Consul{
+		ConnectionProducer:  connProducer,
+		CredentialsProducer: nil,
+	}
+
+	return dbType, nil
 }
 
 // Type returns the TypeName for this backend

@@ -14,10 +14,12 @@ type consulConnectionProducer struct {
 	Scheme      string `json:"scheme" structs:"scheme" mapstructure:"scheme"`
 	Token       string `json:"token" structs:"token" mapstructure:"token"`
 	Initialized bool
+	Type        string
 	sync.Mutex
 	session *api.Client
 }
 
+// Initialize sets the consul client configuration
 func (c *consulConnectionProducer) Initialize(conf map[string]interface{}, verifyConnection bool) error {
 	c.Lock()
 	defer c.Unlock()
@@ -38,14 +40,21 @@ func (c *consulConnectionProducer) Initialize(conf map[string]interface{}, verif
 	c.Initialized = true
 
 	if verifyConnection {
+		if _, err := c.Connection(); err != nil {
+			return fmt.Errorf("error verifying connection: %s", err)
+		}
 
+		if _, err := c.session.Status().Leader(); err != nil {
+			return fmt.Errorf("error verifying connection: %s", err)
+		}
 	}
 
 	return nil
 }
 
-//Connection creates and returns a Consul client
+//Connection creates a Consul client
 func (c *consulConnectionProducer) Connection() (interface{}, error) {
+	var err error
 	if !c.Initialized {
 		return nil, connutil.ErrNotInitialized
 	}
@@ -58,12 +67,12 @@ func (c *consulConnectionProducer) Connection() (interface{}, error) {
 	consulConf.Scheme = c.Scheme
 	consulConf.Token = c.Token
 
-	client, err := api.NewClient(consulConf)
+	c.session, err = api.NewClient(consulConf)
 	if err != nil {
 		return nil, err
 	}
 
-	return client, nil
+	return nil, nil
 }
 
 func (c *consulConnectionProducer) Close() error {
