@@ -15,7 +15,7 @@ type consulConnectionProducer struct {
 	Token       string `json:"token" structs:"token" mapstructure:"token"`
 	Initialized bool
 	sync.Mutex
-	session *api.Session
+	session *api.Client
 }
 
 func (c *consulConnectionProducer) Initialize(conf map[string]interface{}, verifyConnection bool) error {
@@ -38,11 +38,13 @@ func (c *consulConnectionProducer) Initialize(conf map[string]interface{}, verif
 	c.Initialized = true
 
 	if verifyConnection {
+
 	}
 
 	return nil
 }
 
+//Connection creates and returns a Consul client
 func (c *consulConnectionProducer) Connection() (interface{}, error) {
 	if !c.Initialized {
 		return nil, connutil.ErrNotInitialized
@@ -60,10 +62,8 @@ func (c *consulConnectionProducer) Connection() (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	session := client.Session()
-	// id, meta, err := session.Create(q, q)
 
-	return session, nil
+	return client, nil
 }
 
 func (c *consulConnectionProducer) Close() error {
